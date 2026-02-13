@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <string>
 #include <limits>
@@ -10,6 +11,20 @@ const string BILLING_FILE    = "billing_summary.txt";
 
 // Max appliances (will be used later)
 const int MAX_APPLIANCES = 100;
+
+// ------------------------------
+// Data Model (Part 2 addition)
+// ------------------------------
+struct Appliance {
+    string name;
+    double watts;
+    double hours;
+};
+
+// Calculates daily energy usage in kWh for one appliance
+double dailyKwh(const Appliance& a) {
+    return (a.watts / 1000.0) * a.hours;
+}
 
 // Clears bad input from cin
 void clearBadInput() {
@@ -45,6 +60,14 @@ void showMenu() {
 int main() {
     cout << "Electrical Load Monitoring & Billing System\n";
     cout << "-------------------------------------------\n";
+
+    // Example only (to show Part 2 compiles and dailyKwh works)
+    // Not used in the menu yet
+    Appliance sample;
+    sample.name = "Sample Appliance";
+    sample.watts = 100.0;
+    sample.hours = 2.0;
+    // cout << "Sample daily kWh: " << dailyKwh(sample) << "\n";
 
     while (true) {
         showMenu();
@@ -82,9 +105,5 @@ int main() {
     }
 
     return 0;
-}
+} 
 
-
-
-// g++ main.cpp -o main --- compiling
-//  ./main              --- running
