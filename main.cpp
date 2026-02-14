@@ -1,8 +1,9 @@
 
-
+////PART ---------- 6
 #include <iostream>
 #include <string>
 #include <limits>
+#include <iomanip>
 
 using namespace std;
 
@@ -131,6 +132,37 @@ void registerAppliance(Appliance appliances[], int& count) {
     cout << "Appliance registered.\n";
 }
 
+void viewAppliances(const Appliance appliances[], int count) {
+    printHeader("All Registered Appliances");
+
+    if (count == 0) {
+        cout << "No appliances registered yet.\n";
+        return;
+    }
+
+    cout << left
+         << setw(4)  << "#"
+         << setw(25) << "Name"
+         << setw(12) << "Watts"
+         << setw(12) << "Hours/day"
+         << setw(12) << "kWh/day"
+         << "\n";
+
+    cout << "----------------------------------------------------\n";
+
+    cout << fixed << setprecision(2);
+
+    for (int i = 0; i < count; i++) {
+        cout << left
+             << setw(4)  << (i + 1)
+             << setw(25) << appliances[i].name
+             << setw(12) << appliances[i].watts
+             << setw(12) << appliances[i].hours
+             << setw(12) << dailyKwh(appliances[i])
+             << "\n";
+    }
+}
+
 int main() {
     Appliance appliances[MAX_APPLIANCES];
     int count = 0;
@@ -148,8 +180,7 @@ int main() {
                 break;
 
             case 2:
-                printHeader("View Appliances");
-                cout << "This feature will be implemented in the next part.\n";
+                viewAppliances(appliances, count);
                 break;
 
             case 3:
