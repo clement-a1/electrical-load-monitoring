@@ -1,5 +1,4 @@
-
-////PART ---------- 6
+//PART ---------- 7
 #include <iostream>
 #include <string>
 #include <limits>
@@ -96,6 +95,14 @@ double readHours(const string& prompt) {
     }
 }
 
+string toLowerSimple(string s) {
+    for (int i = 0; i < (int)s.size(); i++) {
+        char c = s[i];
+        if (c >= 'A' && c <= 'Z') s[i] = char(c - 'A' + 'a');
+    }
+    return s;
+}
+
 void printHeader(const string& title) {
     cout << "\n====================================================\n";
     cout << title << "\n";
@@ -122,7 +129,7 @@ void registerAppliance(Appliance appliances[], int& count) {
     }
 
     Appliance a;
-    a.name = readNonEmptyLine("Appliance name: ");
+    a.name  = readNonEmptyLine("Appliance name: ");
     a.watts = readPositiveDouble("Power rating (watts, > 0): ");
     a.hours = readHours("Daily usage hours (0 - 24): ");
 
@@ -149,7 +156,6 @@ void viewAppliances(const Appliance appliances[], int count) {
          << "\n";
 
     cout << "----------------------------------------------------\n";
-
     cout << fixed << setprecision(2);
 
     for (int i = 0; i < count; i++) {
@@ -161,6 +167,35 @@ void viewAppliances(const Appliance appliances[], int count) {
              << setw(12) << dailyKwh(appliances[i])
              << "\n";
     }
+}
+
+void searchAppliance(const Appliance appliances[], int count) {
+    printHeader("Search Appliance By Name");
+
+    if (count == 0) {
+        cout << "No appliances registered yet.\n";
+        return;
+    }
+
+    string query = readNonEmptyLine("Enter name to search: ");
+    query = toLowerSimple(trim(query));
+
+    bool found = false;
+    cout << fixed << setprecision(2);
+
+    for (int i = 0; i < count; i++) {
+        string nameLower = toLowerSimple(appliances[i].name);
+        if (nameLower.find(query) != string::npos) {
+            if (!found) cout << "Matches:\n";
+            cout << "- " << appliances[i].name
+                 << " | " << appliances[i].watts << " W"
+                 << " | " << appliances[i].hours << " hrs/day"
+                 << " | " << dailyKwh(appliances[i]) << " kWh/day\n";
+            found = true;
+        }
+    }
+
+    if (!found) cout << "No appliance found.\n";
 }
 
 int main() {
@@ -175,34 +210,21 @@ int main() {
         int option = readInt("Choose an option (1-6): ");
 
         switch (option) {
-            case 1:
-                registerAppliance(appliances, count);
-                break;
-
-            case 2:
-                viewAppliances(appliances, count);
-                break;
-
-            case 3:
-                printHeader("Search Appliance");
-                cout << "This feature will be implemented in a later part.\n";
-                break;
-
+            case 1: registerAppliance(appliances, count); break;
+            case 2: viewAppliances(appliances, count); break;
+            case 3: searchAppliance(appliances, count); break;
             case 4:
                 printHeader("Billing");
                 cout << "This feature will be implemented in a later part.\n";
                 break;
-
             case 5:
                 printHeader("Save Appliances");
-                cout << "This feature will be implemented in a later part.\n";
+                cout << "This feature will be implemented in the next part.\n";
                 break;
-
             case 6:
                 printHeader("Exit");
                 cout << "Goodbye!\n";
                 return 0;
-
             default:
                 cout << "Invalid choice. Please choose between 1 and 6.\n";
                 break;
@@ -211,3 +233,4 @@ int main() {
 
     return 0;
 }
+
