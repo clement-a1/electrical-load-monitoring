@@ -1,8 +1,11 @@
-//PART ---------- 7
+
+
+//PART ---------- 8
 #include <iostream>
 #include <string>
 #include <limits>
 #include <iomanip>
+#include <fstream>
 
 using namespace std;
 
@@ -198,6 +201,20 @@ void searchAppliance(const Appliance appliances[], int count) {
     if (!found) cout << "No appliance found.\n";
 }
 
+bool saveAppliances(const Appliance appliances[], int count) {
+    ofstream fout(APPLIANCES_FILE.c_str());
+    if (!fout.is_open()) return false;
+
+    for (int i = 0; i < count; i++) {
+        fout << appliances[i].name << "|"
+             << appliances[i].watts << "|"
+             << appliances[i].hours << "\n";
+    }
+
+    fout.close();
+    return true;
+}
+
 int main() {
     Appliance appliances[MAX_APPLIANCES];
     int count = 0;
@@ -219,7 +236,11 @@ int main() {
                 break;
             case 5:
                 printHeader("Save Appliances");
-                cout << "This feature will be implemented in the next part.\n";
+                if (saveAppliances(appliances, count)) {
+                    cout << "Appliances saved to " << APPLIANCES_FILE << "\n";
+                } else {
+                    cout << "Failed to save appliances.\n";
+                }
                 break;
             case 6:
                 printHeader("Exit");
@@ -233,4 +254,3 @@ int main() {
 
     return 0;
 }
-
