@@ -1,4 +1,5 @@
 
+//PART ---------- 9
 #include <iostream>
 #include <string>
 #include <limits>
@@ -164,7 +165,107 @@ void viewAppliances(const Appliance appliances[], int count) {
         cout << left
              << setw(4)  << (i + 1)
              << setw(25) << appliances[i].name
-              = loadAppliances(appliances, count);
+             << setw(12) << appliances[i].watts
+             << setw(12) << appliances[i].hours
+             << setw(12) << dailyKwh(appliances[i])
+             << "\n";
+    }
+}
+
+void searchAppliance(const Appliance appliances[], int count) {
+    printHeader("Search Appliance By Name");
+
+    if (count == 0) {
+        cout << "No appliances registered yet.\n";
+        return;
+    }
+
+    string query = readNonEmptyLine("Enter name to search: ");
+    query = toLowerSimple(trim(query));
+
+    bool found = false;
+    cout << fixed << setprecision(2);
+
+    for (int i = 0; i < count; i++) {
+        string nameLower = toLowerSimple(appliances[i].name);
+        if (nameLower.find(query) != string::npos) {
+            if (!found) cout << "Matches:\n";
+            cout << "- " << appliances[i].name
+                 << " | " << appliances[i].watts << " W"
+                 << " | " << appliances[i].hours << " hrs/day"
+                 << " | " << dailyKwh(appliances[i]) << " kWh/day\n";
+            found = true;
+        }
+    }
+
+    if (!found) cout << "No appliance found.\n";
+}
+
+bool saveAppliances(const Appliance appliances[], int count) {
+    ofstream fout(APPLIANCES_FILE.c_str());
+    if (!fout.is_open()) return false;
+
+    for (int i = 0; i < count; i++) {
+        fout << appliances[i].name << "|"
+             << appliances[i].watts << "|"
+             << appliances[i].hours << "\n";
+    }
+
+    fout.close();
+    return true;
+}
+
+bool loadAppliances(Appliance appliances[], int& count) {
+    count = 0;
+
+    ifstream fin(APPLIANCES_FILE.c_str());
+    if (!fin.is_open()) {
+        return false;
+    }
+
+    string line;
+    while (getline(fin, line)) {
+        line = trim(line);
+        if (line == "") continue;
+
+        int p1 = (int)line.find('|');
+        if (p1 == -1) continue;
+        int p2 = (int)line.find('|', p1 + 1);
+        if (p2 == -1) continue;
+
+        string name = trim(line.substr(0, p1));
+        string wattsStr = trim(line.substr(p1 + 1, p2 - (p1 + 1)));
+        string hoursStr = trim(line.substr(p2 + 1));
+
+        double w = 0.0, h = 0.0;
+        {
+            stringstream sw(wattsStr);
+            if (!(sw >> w)) continue;
+        }
+        {
+            stringstream sh(hoursStr);
+            if (!(sh >> h)) continue;
+        }
+
+        if (name != "" && w > 0 && h >= 0 && h <= 24) {
+            if (count < MAX_APPLIANCES) {
+                appliances[count].name = name;
+                appliances[count].watts = w;
+                appliances[count].hours = h;
+                count++;
+            }
+        }
+    }
+
+    fin.close();
+    return true;
+}
+
+int main() {
+    Appliance appliances[MAX_APPLIANCES];
+    int count = 0;
+
+    bool loaded = loadAppliances(appliances, count);
 
     printHeader("Electrical Load Monitoring & Billing System");
     if (loaded) {
@@ -215,5 +316,5 @@ void viewAppliances(const Appliance appliances[], int count) {
         }
     }
 
-    return 0;
+    return 0; 
 }
