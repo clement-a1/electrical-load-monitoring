@@ -1,5 +1,4 @@
-
-//PART ---------- 9
+//PART ------------11
 #include <iostream>
 #include <string>
 #include <limits>
@@ -21,6 +20,12 @@ struct Appliance {
 
 double dailyKwh(const Appliance& a) {
     return (a.watts / 1000.0) * a.hours;
+}
+
+double totalDailyKwh(const Appliance appliances[], int count) {
+    double total = 0.0;
+    for (int i = 0; i < count; i++) total += dailyKwh(appliances[i]);
+    return total;
 }
 
 string trim(const string& s) {
@@ -219,9 +224,7 @@ bool loadAppliances(Appliance appliances[], int& count) {
     count = 0;
 
     ifstream fin(APPLIANCES_FILE.c_str());
-    if (!fin.is_open()) {
-        return false;
-    }
+    if (!fin.is_open()) return false;
 
     string line;
     while (getline(fin, line)) {
@@ -261,6 +264,64 @@ bool loadAppliances(Appliance appliances[], int& count) {
     return true;
 }
 
+void appendBillingSummary(double tariff, int count, double dailyKwhTotal, double dailyCost,
+                          double monthlyKwh, double monthlyCost) {
+    ofstream fout(BILLING_FILE.c_str(), ios::app);
+    if (!fout.is_open()) {
+        cout << "Could not open " << BILLING_FILE << " to save.\n";
+        return;
+    }
+
+    fout << "================ BILLING SUMMARY ================\n";
+    fout << fixed << setprecision(2);
+    fout << "Tariff: " << tariff << " per kWh\n";
+    fout << "Appliances count: " << count << "\n";
+    fout << "Total daily energy: " << dailyKwhTotal << " kWh\n";
+    fout << "Total daily cost:  " << dailyCost << "\n";
+    fout << "Estimated 30-day energy: " << monthlyKwh << " kWh\n";
+    fout << "Estimated 30-day cost:  " << monthlyCost << "\n";
+    fout << "=================================================\n\n";
+
+    fout.close();
+}
+
+void billingMenu(const Appliance appliances[], int count) {
+    printHeader("Billing Calculation");
+
+    if (count == 0) {
+        cout << "No appliances registered. Register appliances first.\n";
+        return;
+    }
+
+    double tariff = readPositiveDouble("Enter electricity tariff per kWh (positive): ");
+
+    double dailyKwhTotal = totalDailyKwh(appliances, count);
+    double dailyCost = dailyKwhTotal * tariff;
+
+    double monthlyKwh = dailyKwhTotal * 30.0;
+    double monthlyCost = dailyCost * 30.0;
+
+    cout << fixed << setprecision(2);
+    cout << "\n--- Detailed Billing Summary ---\n";
+    cout << "Tariff: " << tariff << " per kWh\n";
+    cout << "Total daily energy: " << dailyKwhTotal << " kWh\n";
+    cout << "Total daily cost:  " << dailyCost << "\n";
+    cout << "Estimated 30-day energy: " << monthlyKwh << " kWh\n";
+    cout << "Estimated 30-day cost:  " << monthlyCost << "\n";
+
+    cout << "\nSave this billing summary to " << BILLING_FILE << "? (y/n): ";
+    char ch;
+    cin >> ch;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    if (ch == 'y' || ch == 'Y') {
+        appendBillingSummary(tariff, count, dailyKwhTotal, dailyCost, monthlyKwh, monthlyCost);
+        cout << "Billing summary saved.\n";
+    } else {
+        cout << "Not saved.\n";
+    }
+}
+
 int main() {
     Appliance appliances[MAX_APPLIANCES];
     int count = 0;
@@ -268,11 +329,8 @@ int main() {
     bool loaded = loadAppliances(appliances, count);
 
     printHeader("Electrical Load Monitoring & Billing System");
-    if (loaded) {
-        cout << "Loaded appliances: " << count << "\n";
-    } else {
-        cout << "No previous appliances file found. Starting fresh.\n";
-    }
+    if (loaded) cout << "Loaded appliances: " << count << "\n";
+    else cout << "No previous appliances file found. Starting fresh.\n";
 
     while (true) {
         showMenu();
@@ -292,8 +350,7 @@ int main() {
                 break;
 
             case 4:
-                printHeader("Billing");
-                cout << "This feature will be implemented in the next part.\n";
+                billingMenu(appliances, count);
                 break;
 
             case 5:
@@ -316,5 +373,5 @@ int main() {
         }
     }
 
-    return 0; 
+    return 0;
 }
