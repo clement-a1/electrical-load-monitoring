@@ -1,15 +1,15 @@
-//PART ------------11
+
 #include <iostream>
-#include <string>
-#include <limits>
-#include <iomanip>
 #include <fstream>
-#include <sstream>
+#include <string>
+#include <iomanip>
+#include <limits>
 
 using namespace std;
 
 const string APPLIANCES_FILE = "appliances.txt";
-const string BILLING_FILE    = "billing_summary.txt";
+const string BILLING_FILE = "billing_summary.txt";
+
 const int MAX_APPLIANCES = 100;
 
 struct Appliance {
@@ -18,26 +18,16 @@ struct Appliance {
     double hours;
 };
 
-double dailyKwh(const Appliance& a) {
-    return (a.watts / 1000.0) * a.hours;
-}
 
-double totalDailyKwh(const Appliance appliances[], int count) {
-    double total = 0.0;
-    for (int i = 0; i < count; i++) total += dailyKwh(appliances[i]);
-    return total;
-}
 
 string trim(const string& s) {
     int start = 0;
-    while (start < (int)s.size() &&
-          (s[start] == ' ' || s[start] == '\t' || s[start] == '\r' || s[start] == '\n')) {
+    while (start < (int)s.size() && (s[start] == ' ' || s[start] == '\t' || s[start] == '\r' || s[start] == '\n')) {
         start++;
     }
 
     int end = (int)s.size() - 1;
-    while (end >= 0 &&
-          (s[end] == ' ' || s[end] == '\t' || s[end] == '\r' || s[end] == '\n')) {
+    while (end >= 0 && (s[end] == ' ' || s[end] == '\t' || s[end] == '\r' || s[end] == '\n')) {
         end--;
     }
 
@@ -83,7 +73,7 @@ string readNonEmptyLine(const string& prompt) {
         getline(cin, s);
         s = trim(s);
         if (s != "") return s;
-        cout << "Input must not be empty. Try again.\n";
+        cout << "Appliance name must not be empty. Try again.\n";
     }
 }
 
@@ -103,29 +93,94 @@ double readHours(const string& prompt) {
     }
 }
 
+double dailyKwh(const Appliance& a) {
+    return (a.watts / 1000.0) * a.hours;
+}
+
+double totalDailyKwh(const Appliance appliances[], int count) {
+    double total = 0.0;
+    for (int i = 0; i < count; i++) {
+        total += dailyKwh(appliances[i]);
+    }
+    return total;
+}
+
 string toLowerSimple(string s) {
     for (int i = 0; i < (int)s.size(); i++) {
         char c = s[i];
-        if (c >= 'A' && c <= 'Z') s[i] = char(c - 'A' + 'a');
+        if (c >= 'A' && c <= 'Z') {
+            s[i] = char(c - 'A' + 'a');
+        }
     }
     return s;
+}
+
+bool saveAppliances(const Appliance appliances[], int count) {
+    ofstream fout(APPLIANCES_FILE.c_str());
+    if (!fout.is_open()) return false;
+
+    for (int i = 0; i < count; i++) {
+        fout << appliances[i].name << "|"
+             << appliances[i].watts << "|"
+             << appliances[i].hours << "\n";
+    }
+    fout.close();
+    return true;
+}
+
+bool loadAppliances(Appliance appliances[], int& count) {
+    count = 0;
+
+    ifstream fin(APPLIANCES_FILE.c_str());
+    if (!fin.is_open()) {
+        return false; // first run: file may not exist
+    }
+
+    string line;
+    while (getline(fin, line)) {
+        line = trim(line);
+        if (line == "") continue;
+
+        // Split by '|'
+        int p1 = (int)line.find('|');
+        if (p1 == -1) continue;
+        int p2 = (int)line.find('|', p1 + 1);
+        if (p2 == -1) continue;
+
+        string name = trim(line.substr(0, p1));
+        string wattsStr = trim(line.substr(p1 + 1, p2 - (p1 + 1)));
+        string hoursStr = trim(line.substr(p2 + 1));
+
+        // Convert to double using stringstream (no try/catch)
+        double w = 0, h = 0;
+        {
+            stringstream sw(wattsStr);
+            if (!(sw >> w)) continue;
+        }
+        {
+            stringstream sh(hoursStr);
+            if (!(sh >> h)) continue;
+        }
+
+        // Validate before storing
+        if (name != "" && w > 0 && h >= 0 && h <= 24) {
+            if (count < MAX_APPLIANCES) {
+                appliances[count].name = name;
+                appliances[count].watts = w;
+                appliances[count].hours = h;
+                count++;
+            }
+        }
+    }
+
+    fin.close();
+    return true;
 }
 
 void printHeader(const string& title) {
     cout << "\n====================================================\n";
     cout << title << "\n";
     cout << "====================================================\n";
-}
-
-void showMenu() {
-    cout << "\n==================== MAIN MENU ====================\n";
-    cout << "1. Register electrical appliance\n";
-    cout << "2. View all registered appliances\n";
-    cout << "3. Search appliance by name\n";
-    cout << "4. Load and energy calculation + billing\n";
-    cout << "5. Save appliances to file\n";
-    cout << "6. Exit\n";
-    cout << "===================================================\n";
 }
 
 void registerAppliance(Appliance appliances[], int& count) {
@@ -137,14 +192,18 @@ void registerAppliance(Appliance appliances[], int& count) {
     }
 
     Appliance a;
-    a.name  = readNonEmptyLine("Appliance name: ");
+    a.name = readNonEmptyLine("Appliance name: ");
     a.watts = readPositiveDouble("Power rating (watts, > 0): ");
     a.hours = readHours("Daily usage hours (0 - 24): ");
 
     appliances[count] = a;
     count++;
 
-    cout << "Appliance registered.\n";
+    if (saveAppliances(appliances, count)) {
+        cout << "Appliance registered and saved.\n";
+    } else {
+        cout << "Registered, but failed to save to file.\n";
+    }
 }
 
 void viewAppliances(const Appliance appliances[], int count) {
@@ -164,6 +223,7 @@ void viewAppliances(const Appliance appliances[], int count) {
          << "\n";
 
     cout << "----------------------------------------------------\n";
+
     cout << fixed << setprecision(2);
 
     for (int i = 0; i < count; i++) {
@@ -203,72 +263,16 @@ void searchAppliance(const Appliance appliances[], int count) {
         }
     }
 
-    if (!found) cout << "No appliance found.\n";
-}
-
-bool saveAppliances(const Appliance appliances[], int count) {
-    ofstream fout(APPLIANCES_FILE.c_str());
-    if (!fout.is_open()) return false;
-
-    for (int i = 0; i < count; i++) {
-        fout << appliances[i].name << "|"
-             << appliances[i].watts << "|"
-             << appliances[i].hours << "\n";
+    if (!found) {
+        cout << "No appliance found.\n";
     }
-
-    fout.close();
-    return true;
-}
-
-bool loadAppliances(Appliance appliances[], int& count) {
-    count = 0;
-
-    ifstream fin(APPLIANCES_FILE.c_str());
-    if (!fin.is_open()) return false;
-
-    string line;
-    while (getline(fin, line)) {
-        line = trim(line);
-        if (line == "") continue;
-
-        int p1 = (int)line.find('|');
-        if (p1 == -1) continue;
-        int p2 = (int)line.find('|', p1 + 1);
-        if (p2 == -1) continue;
-
-        string name = trim(line.substr(0, p1));
-        string wattsStr = trim(line.substr(p1 + 1, p2 - (p1 + 1)));
-        string hoursStr = trim(line.substr(p2 + 1));
-
-        double w = 0.0, h = 0.0;
-        {
-            stringstream sw(wattsStr);
-            if (!(sw >> w)) continue;
-        }
-        {
-            stringstream sh(hoursStr);
-            if (!(sh >> h)) continue;
-        }
-
-        if (name != "" && w > 0 && h >= 0 && h <= 24) {
-            if (count < MAX_APPLIANCES) {
-                appliances[count].name = name;
-                appliances[count].watts = w;
-                appliances[count].hours = h;
-                count++;
-            }
-        }
-    }
-
-    fin.close();
-    return true;
 }
 
 void appendBillingSummary(double tariff, int count, double dailyKwhTotal, double dailyCost,
                           double monthlyKwh, double monthlyCost) {
     ofstream fout(BILLING_FILE.c_str(), ios::app);
     if (!fout.is_open()) {
-        cout << "Could not open " << BILLING_FILE << " to save.\n";
+        cout << "Could not open billing_summary.txt to save.\n";
         return;
     }
 
@@ -309,7 +313,7 @@ void billingMenu(const Appliance appliances[], int count) {
     cout << "Estimated 30-day energy: " << monthlyKwh << " kWh\n";
     cout << "Estimated 30-day cost:  " << monthlyCost << "\n";
 
-    cout << "\nSave this billing summary to " << BILLING_FILE << "? (y/n): ";
+    cout << "\nSave this billing summary to billing_summary.txt? (y/n): ";
     char ch;
     cin >> ch;
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -322,15 +326,26 @@ void billingMenu(const Appliance appliances[], int count) {
     }
 }
 
+void showMenu() {
+    cout << "\n==================== MAIN MENU ====================\n";
+    cout << "1. Register electrical appliance\n";
+    cout << "2. View all registered appliances\n";
+    cout << "3. Search appliance by name\n";
+    cout << "4. Load and energy calculation + billing\n";
+    cout << "5. Save appliances to file\n";
+    cout << "6. Exit\n";
+    cout << "===================================================\n";
+}
+
+
 int main() {
     Appliance appliances[MAX_APPLIANCES];
     int count = 0;
 
-    bool loaded = loadAppliances(appliances, count);
+    loadAppliances(appliances, count);
 
-    printHeader("Electrical Load Monitoring & Billing System");
-    if (loaded) cout << "Loaded appliances: " << count << "\n";
-    else cout << "No previous appliances file found. Starting fresh.\n";
+    cout<< "Electrical Load Monitoring & Billing System\n";
+    cout << "Loaded appliances: " << count << "\n";
 
     while (true) {
         showMenu();
@@ -354,16 +369,15 @@ int main() {
                 break;
 
             case 5:
-                printHeader("Save Appliances");
                 if (saveAppliances(appliances, count)) {
-                    cout << "Appliances saved to " << APPLIANCES_FILE << "\n";
+                    cout << "Appliances saved to appliances.txt\n";
                 } else {
                     cout << "Failed to save appliances.\n";
                 }
                 break;
 
             case 6:
-                printHeader("Exit");
+                saveAppliances(appliances, count);
                 cout << "Goodbye!\n";
                 return 0;
 
@@ -375,3 +389,68 @@ int main() {
 
     return 0;
 }
+
+
+////READ ME
+
+# Electrical Load Monitoring (C++)
+
+This is a console C++ program that:
+
+- Lets you register appliances (name, watts, hours/day)
+- Calculates energy used in kWh
+- Calculates electricity cost using a tariff you enter
+- Saves/loads data using text files
+
+## Files
+
+- main.cpp = the program
+- appliances.txt = saved appliances (auto loaded on startup)
+- billing_summary.txt = saved billing reports (optional)
+
+## Formula used
+
+kWh/day = (Watts ÷ 1000) × Hours/day
+
+Example:
+TV 100W used for 4 hours:
+(100/1000) × 4 = 0.4 kWh/day
+
+## How to run (Windows / Mac / Linux)
+
+1. Open terminal in the project folder.
+2. Compile:
+   g++ -std=c++17 -o app main.cpp
+3. Run:
+   - Windows: app.exe
+   - Mac/Linux: ./app
+
+## Appliances file format
+
+Each line in appliances.txt looks like:
+Name|Watts|Hours
+
+Example:
+Fridge|150|8
+TV|100|4
+Fan|60|10
+
+int main() {
+• We create a variable called applicances which would be a type of vector;
+
+so the option five. when chosen it save all the appliances loaded to appliances.txt if it does not exist in the file.
+
+    return 0;
+
+}
+
+////Appliances
+
+Fridge|150|8
+TV|100|4
+Fan|60|10
+Lights|40|6
+Laptop|65|5
+Induction Cooker|2200|2
+Washing machine|120|2
+Electric  Blender|300|1
